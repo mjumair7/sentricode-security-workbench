@@ -1,0 +1,14 @@
+include LICENSE README.md SECURITY.md pyproject.toml
+include requirements*.lock .env.example .gitignore .dockerignore
+include Dockerfile Makefile compose*.yaml
+recursive-include docs *.md *.png
+recursive-include scripts *
+recursive-include deploy *
+recursive-include examples *
+recursive-include tests *.py *.json *.yaml *.yml *.txt
+recursive-include frontend *.ts *.tsx *.css *.json *.yaml *.svg *.ico
+recursive-include .github *.yml
+prune frontend/node_modules
+prune frontend/.next
+prune frontend/out
+global-exclude __pycache__ *.py[cod] *.tsbuildinfo .DS_Store

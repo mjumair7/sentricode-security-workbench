@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools==84.0.0", "wheel==0.48.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sentricode"
+version = "0.1.0"
+description = "A local-first security workbench for source code, secrets, and dependencies"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{name = "SentriCode contributors"}]
+dependencies = [
+  "fastapi==0.141.1",
+  "uvicorn==0.54.0",
+  "SQLAlchemy==2.1.1",
+  "httpx==0.28.1",
+  "python-multipart==0.0.32",
+  "PyYAML==6.0.3",
+]
+
+[project.optional-dependencies]
+postgres = ["psycopg[binary]==3.3.6"]
+dev = ["pytest==9.1.1", "pytest-cov==7.1.0", "build==1.6.1"]
+
+[project.scripts]
+sentricode = "sentricode.cli:main"
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+where = ["backend"]
+namespaces = false
+
+[tool.setuptools.package-data]
+sentricode = ["static/**/*", "static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["backend"]
+addopts = "-ra"
+filterwarnings = ["error::DeprecationWarning:sentricode.*"]
+
+[tool.coverage.run]
+source = ["sentricode"]
+omit = ["*/static/*"]
+
+[tool.coverage.report]
+show_missing = true

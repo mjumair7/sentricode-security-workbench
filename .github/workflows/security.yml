@@ -1,0 +1,23 @@
+name: SentriCode security checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  sentricode:
+    uses: ./.github/workflows/security-scan.yml
+    with:
+      scanner-repository: ${{ github.repository }}
+      # A PR cannot change the scanner that evaluates it.
+      scanner-ref: ${{ github.event.pull_request.base.sha || github.sha }}
+      # Baseline gating on PRs; push/manual runs report all findings.
+      fail-on: ${{ github.event_name == 'pull_request' && 'critical,high' || '' }}
+      # Turn on after enabling code scanning; SARIF is always an artifact.
+      upload-sarif: false
+

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+if [ -f .env ]; then
+  echo "Existing .env preserved. For Docker, set SENTRICODE_TOKEN to a random value of at least 24 characters."
+  exit 0
+fi
+if command -v python3 >/dev/null; then
+  owner_token="$(python3 -c 'import secrets; print(secrets.token_urlsafe(36))')"
+else
+  owner_token="$(docker run --rm python:3.12-slim python -c 'import secrets; print(secrets.token_urlsafe(36))')"
+fi
+umask 077
+while IFS= read -r line || [ -n "$line" ]; do
+  if [ "$line" = "SENTRICODE_TOKEN=" ]; then
+    printf 'SENTRICODE_TOKEN=%s\n' "$owner_token"
+  else
+    printf '%s\n' "$line"
+  fi
+done < .env.example > .env
+printf 'Created .env. Save this owner token in your password manager:\n%s\n' "$owner_token"
+

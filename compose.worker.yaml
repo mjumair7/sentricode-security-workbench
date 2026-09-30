@@ -1,0 +1,30 @@
+# Optional: docker compose -f compose.yaml -f compose.worker.yaml up -d --build
+services:
+  app:
+    environment:
+      SENTRICODE_EMBEDDED_WORKER: "false"
+  worker:
+    image: sentricode:local
+    init: true
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      SENTRICODE_DATA_DIR: /data
+      SENTRICODE_EMBEDDED_WORKER: "false"
+    command: ["python", "-m", "sentricode.worker"]
+    volumes:
+      - sentricode-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 1g
+    cpus: 2
+    healthcheck:
+      disable: true
+    depends_on:
+      app:
+        condition: service_healthy
+

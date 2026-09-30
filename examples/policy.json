@@ -1,0 +1,5 @@
+{
+  "fail_on": ["critical", "high"],
+  "max_high": 0,
+  "fail_on_secrets": true
+}

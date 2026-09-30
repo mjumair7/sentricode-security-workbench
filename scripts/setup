@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+umask 077
+cd "$(dirname "$0")/.."
+
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+"$PYTHON_BIN" -c 'import sys; assert sys.version_info >= (3, 11), "Python 3.11 or newer is required"'
+command -v node >/dev/null || { echo "Install Node.js 22 LTS, then run this again."; exit 1; }
+command -v corepack >/dev/null || { echo "Install Corepack with npm install --global corepack, then run this again."; exit 1; }
+"$PYTHON_BIN" -m venv .venv
+.venv/bin/python -m pip install -r requirements-dev.lock
+.venv/bin/python -m pip install --no-deps -e .
+if [ ! -f .env ]; then
+  cp .env.example .env
+fi
+(
+  cd frontend
+  corepack pnpm install --frozen-lockfile
+  corepack pnpm build
+)
+.venv/bin/python scripts/copy_frontend.py
+echo "Setup complete. Run ./scripts/start, then open http://127.0.0.1:8000"

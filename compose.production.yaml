@@ -1,0 +1,26 @@
+# Start with: docker compose -f compose.yaml -f compose.production.yaml up -d --build
+services:
+  app:
+    environment:
+      SENTRICODE_PUBLIC_URL: ${SENTRICODE_PUBLIC_URL:?Set an HTTPS origin in .env}
+      SENTRICODE_TOKEN: ${SENTRICODE_TOKEN:?Set a random owner token in .env}
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      SENTRICODE_DOMAIN: ${SENTRICODE_DOMAIN:?Set your hostname in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+
+volumes:
+  caddy-data:
+  caddy-config:
+
