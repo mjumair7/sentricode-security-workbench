@@ -1,105 +1,130 @@
 # SentriCode
 
-A security workbench for the code I build.
+[![CI](https://github.com/mjumair7/sentricode-security-workbench/actions/workflows/ci.yml/badge.svg)](https://github.com/mjumair7/sentricode-security-workbench/actions/workflows/ci.yml)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB)](https://www.python.org/)
+[![MIT License](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE)
 
-I started this after attending Elevate (Nrth) and sitting through a seminar with a Capital One speaker about AI automated code checks and vulnerability checks. I wanted to understand what goes into that workflow and build something I could keep using on my own projects.
+SentriCode is a local security workbench I built to understand what happens between a source-code scan and a useful engineering decision.
 
-SentriCode brings source checks, secret detection, dependency inventory, confidentiality checks, scan history, and optional AI explanations into one place. It runs locally, has a CLI for any checkout, and can be deployed as a private web application. The connection to the seminar is personal inspiration; this project is not affiliated with Capital One or Elevate.
+The idea came from a security talk at Elevate (Nrth). I was interested in a practical question: once a scanner flags something, how do I keep the evidence, explain the risk, record a decision, and tell whether the same problem returns later?
 
-The part I wanted to get right was the connection between a finding and what to do next: show the evidence, explain the risk, keep track of the decision, and check whether the same issue is still there on the next scan. I use the scanner as another review step, and still read the findings myself.
+This repository is my answer to that question. It combines a Python scanner and CLI with a small web dashboard. It is a student project and a learning tool—not a replacement for a professional security review.
 
-## Run it
+## What it can do
 
-The easiest option is Docker Desktop on a personal computer, or Docker Engine with Compose on Linux.
+- scan a local directory, uploaded ZIP, or public GitHub repository;
+- find selected source-code risks, likely secrets, and sensitive logging patterns;
+- inventory dependencies and export a CycloneDX SBOM;
+- compare scans so recurring and resolved findings are visible;
+- apply a policy threshold in CI;
+- export JSON, CSV, SARIF, and SBOM reports;
+- optionally request an AI explanation for one redacted finding.
+
+The built-in checks work without an AI key or external scanner. Optional engines report whether they ran, failed, or were skipped, so a clean-looking report cannot silently imply coverage that was never performed.
+
+## Quick start
+
+Docker is the shortest path:
 
 ```sh
 ./scripts/configure
 docker compose up -d --build
 ```
 
-Save the owner token printed by `scripts/configure`, then open **http://127.0.0.1:8000** and sign in. The first build downloads dependencies and builds the dashboard. Use **New scan** to upload a ZIP of your project or enter a GitHub repository URL. **Try a sample** scans a deliberately vulnerable project; its results are labelled as demo data. For Windows PowerShell, use the [manual configuration steps](docs/deployment.md#windows-powershell).
+Save the owner token printed by the setup script, then open <http://127.0.0.1:8000>. Use **Try a sample** for a deliberately vulnerable demo or **New scan** for a project you are allowed to inspect.
 
-Your reports live in the `sentricode-data` Docker volume. These are the commands I keep handy:
+Useful commands:
 
 ```sh
-docker compose stop             # Pause it, keep the reports
-docker compose up -d            # Start it again anytime
-docker compose logs -f app      # See what is happening
-docker compose up -d --build    # Rebuild after updating the source
+docker compose stop             # stop the app and keep saved reports
+docker compose up -d            # start it again
+docker compose logs -f app      # follow application logs
+docker compose up -d --build    # rebuild after source changes
 ```
 
-Docker must be running. `restart: unless-stopped` restarts the service after a host reboot when Docker starts, unless you previously stopped it. Do not use `docker compose down -v` unless you intend to delete saved reports. No chat session, hosted AI service, or API key is needed to keep the app running.
+Do not run `docker compose down -v` unless deleting saved reports is intentional.
 
-For a source installation on macOS or Linux, install Python 3.11+ (3.12 recommended), Node.js 22 and Corepack, then:
+For a source installation on macOS or Linux:
 
 ```sh
 ./scripts/setup
 ./scripts/start
 ```
 
-After the first setup, only `./scripts/start` is needed. It loads `.env`, serves the built dashboard, and listens on `127.0.0.1:8000`. Keep that terminal open, or use Docker for a background service. On Windows, use Docker Desktop or run these scripts inside WSL. See [local development](docs/development.md) for separate frontend/backend development.
+Python 3.11+ and Node.js 22 are required. Windows users can use Docker Desktop or WSL. More detail lives in [the development guide](docs/development.md).
 
-## Use it on your other projects
+## CLI
 
-The app is not tied to this repository. Upload another project's ZIP, import another GitHub repository, or use the CLI installed by `scripts/setup`:
-
-```sh
-# The path can be any checkout you own.
-.venv/bin/sentricode scan /path/to/my-project
-
-# Save a complete report or a software bill of materials.
-.venv/bin/sentricode scan /path/to/my-project --format json -o reports/report.json
-.venv/bin/sentricode scan /path/to/my-project --format sbom -o reports/sbom.json
-
-# Fail a build on findings that cross your policy.
-.venv/bin/sentricode scan /path/to/my-project --policy examples/policy.json
-```
-
-No dependency installation or application build is performed inside scanned projects. Built-in checks work without external scanners or network access. Coverage varies by language and file type; this is most useful for Python, JavaScript/TypeScript, common dependency manifests, and infrastructure configuration. A clean report is not proof that a project is secure.
-
-## What is here
-
-- A Next.js/React dashboard backed by FastAPI, with real scan progress, findings, scan comparisons, exports, policies, and audit history.
-- Local static rules, secret detection with redacted evidence, sensitive logging checks, dependency inventory, and a CycloneDX SBOM.
-- Optional scanner integrations and network vulnerability enrichment. Engine status tells you what actually ran, failed, or was skipped.
-- Owner-token authentication and optional GitHub OAuth restricted to one configured owner; GitHub repository import is separate from sign-in.
-- Optional AI explanations for a selected finding, with explicit consent and limited redacted context. No API key means local guidance remains available.
-- A CLI, JSON/CSV/SARIF/SBOM exports, and reusable pull-request checks with a baseline.
-
-This release is a **single-owner workbench**. The larger design includes ideas such as organizations, full interprocedural analysis, image scanning, cloud autoscaling, and reviewed autofix pull requests. Those are not presented as finished features. [Coverage and limitations](docs/coverage.md) maps the implementation to that design, and [security](docs/security.md) explains the trust boundaries.
-
-## Publish it and keep it available
-
-The source can go in a public or private GitHub repository. The running application needs a server for the API, worker, and saved reports; GitHub Pages alone cannot host it.
-
-1. Extract the source ZIP and publish the extracted folder with GitHub Desktop or Git. Keep `.env`, reports, and `data/` out of the repository.
-2. Run Docker Compose on a Linux server you control.
-3. Set a random owner token and your HTTPS address, then start the included Caddy reverse proxy.
-
-The exact commands, domain setup, persistent storage, backups, and GitHub upload steps are in [deployment](docs/deployment.md). [CI integration](docs/ci.md) shows how to reuse the scanner in any of your other repositories.
-
-## Work on the project
+After running `./scripts/setup`, the same scanner can be used without the dashboard:
 
 ```sh
-make check   # Python tests and TypeScript checks
-make build   # Build and copy the dashboard into the Python app
-make start
+.venv/bin/sentricode scan /path/to/project
+.venv/bin/sentricode scan /path/to/project --format json -o report.json
+.venv/bin/sentricode scan /path/to/project --format sbom -o sbom.json
+.venv/bin/sentricode scan /path/to/project --policy examples/policy.json
 ```
 
-The source is intentionally kept fairly small:
+SentriCode never installs dependencies or runs code from the project being scanned.
+
+## How the pieces fit
+
+```mermaid
+flowchart LR
+    S[Directory / ZIP / GitHub] --> I[Bounded ingestion]
+    I --> P[Python scanner]
+    P --> F[(Findings + scan history)]
+    P --> E[JSON / CSV / SARIF / SBOM]
+    F --> A[FastAPI]
+    A --> W[Next.js dashboard]
+    F -. selected, redacted context .-> X[Optional explanation]
+```
+
+The main folders are:
 
 ```text
-backend/sentricode/   API, worker, ingestion, scanners, CLI, exports
-frontend/            Next.js dashboard
-tests/               Scanner and API/security regression tests
-scripts/             Setup and local launch helpers
-deploy/              HTTPS reverse proxy configuration
-docs/                Architecture, coverage, deployment, and CI
-.github/workflows/   Build/test and reusable security checks
+backend/sentricode/   scanner, API, worker, CLI, exports
+frontend/             Next.js dashboard
+tests/                API, scanner, ingestion, and export tests
+scripts/              setup, configuration, and launch helpers
+docs/                 architecture, coverage, security, CI, deployment
+examples/             sample policy and deliberately vulnerable project
 ```
 
-Python versions are pinned in `pyproject.toml` and the requirements lock files. The frontend uses `frontend/pnpm-lock.yaml`. [Architecture](docs/architecture.md) describes the design and the places I would change first if the project grows.
+## Decisions I care about
 
-MIT licensed. Please report security issues as described in [SECURITY.md](SECURITY.md).
+- **Local first.** Reports and uploaded source stay on the machine unless an optional integration is deliberately enabled.
+- **Bounded input.** Archives, repositories, files, and decoded text all have independent size limits.
+- **Visible coverage.** Every engine records completed, skipped, or failed status.
+- **No automatic fixes.** A finding or AI explanation cannot suppress results or patch a repository.
+- **Single owner for now.** Authentication and storage are intentionally simpler than a multi-tenant service.
 
-Operational references: [Docker service and restart settings](https://docs.docker.com/reference/compose-file/services/), [Caddy automatic HTTPS](https://caddyserver.com/docs/automatic-https), and [GitHub's workflow security guidance](https://docs.github.com/en/actions/reference/security/secure-use).
+[Design notes](docs/design-notes.md) records the reasoning and rough edges behind those choices. [Coverage and limitations](docs/coverage.md) maps what is implemented and what is not.
+
+## Tests
+
+```sh
+make test    # Python test suite
+make check   # Python tests + frontend type checking
+```
+
+GitHub Actions runs the checks on pushes and pull requests. The reusable security workflow can also scan another repository against a checked-in baseline; see [CI integration](docs/ci.md).
+
+## Honest limitations
+
+- The static analysis is intentionally small and mostly intra-file. It is not CodeQL, Semgrep, or a full data-flow engine.
+- Dependency inventory is not the same as complete vulnerability coverage.
+- A clean result means only that the enabled checks did not report a match.
+- GitHub importing and external enrichment require network access and should be treated as explicit trust decisions.
+- The current application is designed for one owner, not a public multi-user deployment.
+
+Those limits are part of the interface and documentation because false confidence is worse than an incomplete tool.
+
+## What I learned
+
+The most interesting part was not writing another regex. It was designing the boundaries around untrusted input: refusing unsafe ZIP entries, redacting secret evidence, keeping optional network calls separate, and making partial scanner coverage visible. The project also forced me to connect backend security decisions to UI language—an engine failure has to be obvious to the person reading the report.
+
+## License and security reports
+
+SentriCode is MIT licensed. Please use [SECURITY.md](SECURITY.md) for responsible disclosure.
+
+The project is not affiliated with Capital One or Elevate; the talk was simply the starting point for my own implementation.
