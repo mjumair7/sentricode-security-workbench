@@ -21,7 +21,7 @@ dependencies = [
 
 [project.optional-dependencies]
 postgres = ["psycopg[binary]==3.3.6"]
-dev = ["pytest==9.1.1", "pytest-cov==7.1.0", "build==1.6.1"]
+dev = ["pytest==9.2.0", "pytest-cov==7.1.0", "build==1.6.1"]
 
 [project.scripts]
 sentricode = "sentricode.cli:main"
